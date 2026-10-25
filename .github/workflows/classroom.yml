@@ -28,11 +28,18 @@ jobs:
       - name: Run tests
         run: |
           for f in tests/test*.txt; do
+            case "$f" in
+              *-out.txt|*-in.txt) continue ;;
+            esac
             base=$(basename "$f" .txt)
-            if [ -f "tests/${base}_expected.txt" ]; then
-              ./romancalc "$f" output.txt
-              numdiff -a 1.0e-6 -q output.txt "tests/${base}_expected.txt"
+            expected="tests/${base}-out.txt"
+            if [ ! -f "$expected" ]; then
+              echo "Skip $f: no expected file $expected"
+              continue
             fi
+            echo "Test: $f -> $expected"
+            ./romancalc "$f" output.txt
+            numdiff -a 1.0e-6 -q output.txt "$expected"
           done
 
       - name: Memory leaks (romancalc)
