@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
               firstArabic = secondArabic / firstArabic;
               break;
           }
-          arabicline[k2++] = firstArabic;
+          arabicLine[k2++] = firstArabic;
         }
         i++;
       }
