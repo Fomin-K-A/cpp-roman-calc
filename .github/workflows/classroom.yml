@@ -1,0 +1,40 @@
+name: Local CI
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - '.github/*'
+
+jobs:
+  Build-And-Test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Get repository code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y valgrind numdiff
+
+      - name: Build
+        run: |
+          !(grep -qwRE --include=*.{cc,cpp,h} '<vector>|<list>|<algorithm>|<stack>|<queue>|<deque>|<set>|<map>|<string>' ./* ) \
+            && echo "Build..." \
+            || (echo "Forbidden STL containers" && exit 9)
+          clang++ -pedantic-errors -std=c++17 romancalc.cpp -o romancalc
+
+      - name: Run tests
+        run: |
+          for f in tests/test*.txt; do
+            base=$(basename "$f" .txt)
+            if [ -f "tests/${base}_expected.txt" ]; then
+              ./romancalc "$f" output.txt
+              numdiff -a 1.0e-6 -q output.txt "tests/${base}_expected.txt"
+            fi
+          done
+
+      - name: Memory leaks (romancalc)
+        run: |
+          valgrind --tool=memcheck --leak-check=full --undef-value-errors=no --error-exitcode=111 ./romancalc tests/test2.txt output.txt
